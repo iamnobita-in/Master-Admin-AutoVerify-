@@ -95,7 +95,7 @@ async def set_firebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     url = context.args[0].replace('.json', '').rstrip('/')
     if not url.endswith('/clients'):
-        firebase_base = f"{url}/clients"
+        firebase_base = f"{url}/user_data"
     else:
         firebase_base = url
         
