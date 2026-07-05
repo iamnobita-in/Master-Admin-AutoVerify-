@@ -1,0 +1,5 @@
+python-telegram-bot
+firebase-admin
+PyGithub
+requests
+flask
