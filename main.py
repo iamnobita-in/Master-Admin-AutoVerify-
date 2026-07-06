@@ -160,17 +160,17 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             response = requests.get(f"{firebase_base}/user_data/{client_id}.json")
             details = response.json()
-            status = "ONLINE 🟢" if details.get('status') == True else "OFFLINE 🔴"
-            msg = (f"📱 {details.get('modelName', 'Unknown')}\n"
+            status = "ONLINE 🟢" if details.get('status') == "online" else "OFFLINE 🔴"
+            msg = (f"📱 {details.get('d_name', 'Unknown')}\n"
                    f"🆔 {client_id}\n"
-                   f"📞 {details.get('mobNo', 'Unknown')}\n"
+                   f"📞 {details.get('phoneNumber', 'Unknown')}\n"
                    f"🔋 {details.get('battery', 'N/A')}\n"
                    f"{status}\n\n"
                    f"✅ Device Select ho gayi! Next: /addchannel <channel_id>")
             await query.edit_message_text(text=msg)
         except Exception as e:
             await query.edit_message_text(f"Error: {str(e)}")
-    elif query.data == "cancel":
+    elif query.data == "m_cancel":
         await query.edit_message_text("❌ Operation Cancelled.")
 
 async def add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
