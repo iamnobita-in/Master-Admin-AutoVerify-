@@ -234,7 +234,7 @@ async def monitor_task(chat_id, context):
                     text = (f"📩 New Incoming SMS\n\n"
                             f"📱 From: {sender}\n"
                             f"🕒 Time: {time_val}\n\n"
-                            f"💬 Message:\n`{msg_content}`")
+                            f"💬 Message: `{msg_content}`")
                     
                     # Markdown ka use kiya hai taaki code block kaam kare
                     await context.bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown")
