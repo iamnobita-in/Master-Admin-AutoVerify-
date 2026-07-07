@@ -33,18 +33,38 @@ async def check(update: Update):
     return True
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await check(update): return
-    help_text = (
-        "🤖 **Welcome to the Bot!**\n\n"
-        "Ye bot tumhari devices aur channel ke beech data ko manage karta hai.\n"
-        "Shuruat karne ke liye niche di gayi commands ka follow karein:\n\n"
-        "1. /setfirebase <url> : Firebase database connection set karein.\n"
-        "2. /setdevice : Apni device list dekhein aur select karein.\n"
-        "3. /addchannel <channel_id> : Channel connect karein.\n"
-        "4. /startmoniter : Monitoring start karein.\n\n"
-        "🔥 **Step 1: Firebase URL set karne ke liye /setfirebase command use karein.**"
+    # Premium check
+    if not await check(update):
+        return  # Yahan check() function automatically premium na hone par error bhej dega
+
+    # Agar user premium hai, toh ye menu dikhega
+    start_text = (
+        "━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🎉 WELCOME TO AUTO VERIFY BOT 💞\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "                           XXX\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "  ⚡  H O W   T O  U S E  T H I S  B O T\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "◈ Step No 1 - Use /setfirebase <url>\n"
+        "◈ Step No 2 - Use /setdevice \n"
+        "◈ Step No 3 - Use /addchannel <ch id >\n"
+        "◈ Step No 4 - Use /startmoniter\n\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "          ⚠️  U S A G E   G U I D E  ✨\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "◈ /setfirebase https://yourdtburl.com\n\n"
+        "◈ /setdevice - Select Your Device \n\n"
+        "◈ /addchannel -1001234567\n\n"
+        "◈ /startmoniter - Moniter Token & Sms\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "  ⚠️   M A K E  B Y  M R.  N O B I T A  ✨\n"
+        "         🔐  M A S T E R   A D M I N  🔥\n"
+        "   🌟  A U T O  V E R I F Y  B O T 💞\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━"
     )
-    await update.message.reply_text(help_text, parse_mode="Markdown")
+    
+    await update.message.reply_text(start_text, parse_mode="Markdown")
 
 async def add_premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_chat.id
